@@ -41,7 +41,6 @@ hashvariant-C.v    As B, but pushes two hashes simultaneously through the pipeli
                    
 BlueDragon747 added:
 
-For Icarus/Lancelot boards that have LX150 I have been playing with adapting the DSP48E1 sha256 to DSP48A1 
-but it is using 240 DSP48 blocks and still needs trimming to 180 DSP48 blocks or less
+For Icarus/Lancelot boards that have LX150 I have been playing with adapting the DSP48E1 sha256 to DSP48A1 but it is using 240 DSP48 blocks and still needs trimming to 180 DSP48 blocks or less
 
 sha256_dsp48a1.v   SHA256 in DSP48
