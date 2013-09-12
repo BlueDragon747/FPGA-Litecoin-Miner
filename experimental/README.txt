@@ -35,12 +35,11 @@ hashvariant-B.v    Pipelined 2x clock speed (NOT interleaving hashes). NB perfor
 				   
 hashvariant-C.v    As B, but pushes two hashes simultaneously through the pipeline. Also
                    uses salsa-B.v NB This is a prototype design, the hash scheduling FSM
-                   is totally INSANE (a tribute to NASA's skycrane perhaps). I'll do a
-                   more sensible implementation later. I'll extend this to a full eight
-                   stage pipeline in the next version.
-                   
-BlueDragon747 added:
+                   is totally INSANE (a tribute to NASA's skycrane perhaps).
 
-For Icarus/Lancelot boards that have LX150 I have been playing with adapting the DSP48E1 sha256 to DSP48A1 but it is using 240 DSP48 blocks and still needs trimming to 180 DSP48 blocks or less
+LX150_SPLIT        Separates the pbkdf and salsa engines into separate modules linked by
+                   a one bit serial bus to reduce routing congestion. This will form the
+                   basis of ongoing work on further pipelining of the salsa.
 
-sha256_dsp48a1.v   SHA256 in DSP48
+LX150_EIGHT-A      Fully pipelined salsa with 8 threads. Slow and somewhat buggy (see
+                   the README). Major rework is required, will use -B, -C suffixes.

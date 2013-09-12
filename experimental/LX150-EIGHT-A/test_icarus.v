@@ -63,8 +63,8 @@ module test_ltcminer ();
 	serial_transmit #(.comm_clk_frequency(comm_clk_frequency), .baud_rate(baud_rate)) sertx (.clk(clk), .TxD(RxD), .send(serial_send), .busy(serial_busy), .word(data_32));
 
 	// TUNE this according to comm_clk_frequency so we send a single getwork (else it gets overwritten with 0's)
-	parameter stop_cycle = 7020;		// For comm_clk_frequency=1_000_000
-	// parameter stop_cycle = 0;			// Use this to DISABLE sending data
+	// parameter stop_cycle = 7020;		// For comm_clk_frequency=1_000_000
+	parameter stop_cycle = 0;			// Use this to DISABLE sending data
 	always @ (posedge clk)
 	begin
 		serial_send <= 0;				// Default
