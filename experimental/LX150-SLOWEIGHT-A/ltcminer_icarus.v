@@ -4,8 +4,15 @@
  * by teknohog
  */
 
-`include "../source/sha-256-functions.v"
-`include "../source/sha256_transform.v"
+`include "../../source/sha-256-functions.v"
+`include "../../source/sha256_transform.v"
+// `include "../../ICARUS-LX150/xilinx_pll.v"	// Only needed if not USE_DYN_PLL
+`include "../../ICARUS-LX150/uart_receiver.v"
+`include "../../ICARUS-LX150/uart_transmitter.v"
+`include "../../ICARUS-LX150/serial.v"
+`include "../../ICARUS-LX150/serial_hub.v"
+`include "../../ICARUS-LX150/hub_core.v"
+`include "../../ICARUS-LX150/pwm_fade.v"
 
 module ltcminer_icarus (osc_clk, RxD, TxD, led, extminer_rxd, extminer_txd, dip, TMP_SCL, TMP_SDA, TMP_ALERT);
 
@@ -33,7 +40,7 @@ module ltcminer_icarus (osc_clk, RxD, TxD, led, extminer_rxd, extminer_txd, dip,
 `ifdef SPEED_LIMIT
 	parameter SPEED_LIMIT = `SPEED_LIMIT;			// Fastest speed accepted by dyn_pll config
 `else
-	parameter SPEED_LIMIT = 100;					// Deliberately conservative, increase at own risk
+	parameter SPEED_LIMIT = 50;						// Deliberately conservative, increase at own risk
 `endif
 
 `ifdef SPEED_MIN
@@ -61,7 +68,7 @@ module ltcminer_icarus (osc_clk, RxD, TxD, led, extminer_rxd, extminer_txd, dip,
 `ifdef LOCAL_MINERS
 	parameter LOCAL_MINERS = `LOCAL_MINERS;
 `else
-	parameter LOCAL_MINERS = 2;						// One to four cores (configures ADDRBITS automatically)
+	parameter LOCAL_MINERS = 1;						// One to four cores (configures ADDRBITS automatically)
 `endif
 
 `ifdef ADDRBITS

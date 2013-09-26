@@ -4,8 +4,8 @@ NET "hash_clk" TNM_NET = "hash_clk";
 NET "pbkdf_clk" TNM_NET = "pbkdf_clk";
 NET "uart_clk" TNM_NET = "uart_clk";
 
-# 10MHz hash_clk (it may route better specifying a slightly slower clock)
-TIMESPEC TS_hash_clk = PERIOD "hash_clk" 10 MHZ HIGH 50 % INPUT_JITTER 7 ps;
+# 90MHz hash_clk (it may route better specifying a slightly slower clock)
+TIMESPEC TS_hash_clk = PERIOD "hash_clk" 90 MHZ HIGH 50 % INPUT_JITTER 7 ps;
 
 # 50MHz pbkdf_clk
 TIMESPEC TS_pbkdf_clk = PERIOD "pbkdf_clk" 50 MHZ HIGH 50 % INPUT_JITTER 7 ps;

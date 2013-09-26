@@ -4,8 +4,15 @@
  * by teknohog
  */
 
-`include "../source/sha-256-functions.v"
-`include "../source/sha256_transform.v"
+`include "../../source/sha-256-functions.v"
+`include "../../source/sha256_transform.v"
+// `include "../../ICARUS-LX150/xilinx_pll.v"	// Only needed if not USE_DYN_PLL
+`include "../../ICARUS-LX150/uart_receiver.v"
+`include "../../ICARUS-LX150/uart_transmitter.v"
+`include "../../ICARUS-LX150/serial.v"
+`include "../../ICARUS-LX150/serial_hub.v"
+`include "../../ICARUS-LX150/hub_core.v"
+`include "../../ICARUS-LX150/pwm_fade.v"
 
 module ltcminer_icarus (osc_clk, RxD, TxD, led, extminer_rxd, extminer_txd, dip, TMP_SCL, TMP_SDA, TMP_ALERT);
 
@@ -27,19 +34,13 @@ module ltcminer_icarus (osc_clk, RxD, TxD, led, extminer_rxd, extminer_txd, dip,
 `ifdef SPEED_MHZ
 	parameter SPEED_MHZ = `SPEED_MHZ;
 `else
-	parameter SPEED_MHZ = 25;						// Default to slow, use dynamic config to ramp up in realtime
+	parameter SPEED_MHZ = 50;						// Default to slow, use dynamic config to ramp up in realtime
 `endif
 
 `ifdef SPEED_LIMIT
 	parameter SPEED_LIMIT = `SPEED_LIMIT;			// Fastest speed accepted by dyn_pll config
 `else
-	parameter SPEED_LIMIT = 100;					// Deliberately conservative, increase at own risk
-`endif
-
-`ifdef SPEED_MIN
-	parameter SPEED_MIN = `SPEED_MIN;				// Slowest speed accepted by dyn_pll config (CARE can lock up if too low)
-`else
-	parameter SPEED_MIN = 10;
+	parameter SPEED_LIMIT = 150;					// Deliberately conservative, increase at own risk
 `endif
 
 `ifdef SERIAL_CLK
@@ -61,7 +62,7 @@ module ltcminer_icarus (osc_clk, RxD, TxD, led, extminer_rxd, extminer_txd, dip,
 `ifdef LOCAL_MINERS
 	parameter LOCAL_MINERS = `LOCAL_MINERS;
 `else
-	parameter LOCAL_MINERS = 2;						// One to four cores (configures ADDRBITS automatically)
+	parameter LOCAL_MINERS = 4;						// One to four cores (configures ADDRBITS automatically)
 `endif
 
 `ifdef ADDRBITS
@@ -112,9 +113,8 @@ module ltcminer_icarus (osc_clk, RxD, TxD, led, extminer_rxd, extminer_txd, dip,
 	assign pbkdf_clk = osc_clk;
 	`ifdef USE_DYN_PLL
 		assign first_dcm_locked = 1'b1;
-		assign dcm_progdone = 1'b1;
 		assign dcm_locked = 1'b1;
-		assign dcm_status = 0;
+		assign dcm_status = 8'd0;
 	`endif	
 `endif
 
@@ -122,7 +122,7 @@ module ltcminer_icarus (osc_clk, RxD, TxD, led, extminer_rxd, extminer_txd, dip,
 	reg [7:0] dyn_pll_speed = SPEED_MHZ;
 	reg dyn_pll_start = 0;
 	parameter OSC_MHZ = 100;		// Clock oscillator (used for divider ratio)
-	dyn_pll_ctrl # (.SPEED_MHZ(SPEED_MHZ), .SPEED_LIMIT(SPEED_LIMIT), .SPEED_MIN(SPEED_MIN), .OSC_MHZ(OSC_MHZ)) dyn_pll_ctrl_blk
+	dyn_pll_ctrl # (.SPEED_MHZ(SPEED_MHZ), .SPEED_LIMIT(SPEED_LIMIT), .OSC_MHZ(OSC_MHZ)) dyn_pll_ctrl_blk
 		(uart_clk,			// NB uses uart_clk as its just osc/8 and should always be valid
 		first_dcm_locked,	// ... but we check it anyway
 		dyn_pll_speed,
@@ -151,7 +151,6 @@ module ltcminer_icarus (osc_clk, RxD, TxD, led, extminer_rxd, extminer_txd, dip,
 
 	// Results from the input buffers (in serial_hub.v) of each slave
 	wire [SLAVES*32-1:0]	slave_nonces;
-	wire [SLAVES*32-1:0]	slave_debug_sr;
 	wire [SLAVES-1:0]		new_nonces;
 
 	// Using the same transmission code as individual miners from serial.v
@@ -225,8 +224,6 @@ module ltcminer_icarus (osc_clk, RxD, TxD, led, extminer_rxd, extminer_txd, dip,
 	serial_receive #(.comm_clk_frequency(comm_clk_frequency), .baud_rate(BAUD_RATE)) serrx (.clk(uart_clk), .RxD(RxD), .data1(data1),
 						.data2(data2), .data3(data3), .target(target), .rx_done(rx_done));
 
-	parameter SBITS = 8;		// Shift data path width
-
 	// Local miners now directly connected
 	generate
 		genvar i;
@@ -236,21 +233,17 @@ module ltcminer_icarus (osc_clk, RxD, TxD, led, extminer_rxd, extminer_txd, dip,
 			wire [31:0] nonce_out;	// Not used
 			wire [2:0] nonce_core = i;
 			wire gn_match;
-			wire salsa_busy, salsa_result, salsa_reset, salsa_start, salsa_shift;
-			wire [SBITS-1:0] salsa_din;
-			wire [SBITS-1:0] salsa_dout;
-			wire [3:0] dummy;	// So we can ignore top 4 bits of slave_debug_sr
+			
+			wire salsa_din, salsa_dout, salsa_busy, salsa_result, salsa_reset, salsa_start, salsa_shift;
 
 			// Currently one pbkdfengine per salsaengine - TODO share the pbkdfengine for several salsaengines
-			pbkdfengine #(.SBITS(SBITS)) P
-				(.hash_clk(hash_clk), .pbkdf_clk(pbkdf_clk), .data1(data1), .data2(data2), .data3(data3), .target(mod_target),
+			pbkdfengine P (.hash_clk(hash_clk), .pbkdf_clk(pbkdf_clk), .data1(data1), .data2(data2), .data3(data3), .target(mod_target),
 				.nonce_msb({nonce_chip, nonce_core}), .nonce_out(nonce_out), .golden_nonce_out(slave_nonces[i*32+31:i*32]),
 				.golden_nonce_match(gn_match), .loadnonce(loadnonce),
 				.salsa_din(salsa_din), .salsa_dout(salsa_dout), .salsa_busy(salsa_busy), .salsa_result(salsa_result),
 				.salsa_reset(salsa_reset), .salsa_start(salsa_start), .salsa_shift(salsa_shift));
 
-			salsaengine #(.ADDRBITS(ADDRBITS), .SBITS(SBITS)) S
-				(.hash_clk(hash_clk), .reset(salsa_reset), .din(salsa_din), .dout(salsa_dout),
+			salsaengine #(.ADDRBITS(ADDRBITS)) S (.hash_clk(hash_clk), .reset(salsa_reset), .din(salsa_din), .dout(salsa_dout),
 				.shift(salsa_shift), .start(salsa_start), .busy(salsa_busy), .result(salsa_result) );
 					
 			// Synchronise across clock domains from pbkdf_clk to uart_clk for: assign new_nonces[i] = gn_match;
@@ -278,7 +271,6 @@ module ltcminer_icarus (osc_clk, RxD, TxD, led, extminer_rxd, extminer_txd, dip,
 	// slave_nonces/new_nonces as local ones
 	output [EXT_PORTS-1:0] extminer_txd;
 	input [EXT_PORTS-1:0]  extminer_rxd;
-	// wire [EXT_PORTS-1:0]  extminer_rxd_debug = 1'b1;	// DISABLE INPUT
 	assign extminer_txd = {EXT_PORTS{RxD}};
 
 	generate

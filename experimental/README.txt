@@ -1,10 +1,5 @@
 Experimental hashing cores.
 
-These currently target the DE0-Nano board (Cyclone IV 22kLE) as that is what I have, but
-I may include some tests on my Xilinx LX9 homebrew board (not that I expect to be able to
-fit a sensible scrypt hashing core on this tiny device, though a severly cut down version
-might be possible).
-
 I have several goals here ...
 
 1. Reduce LE count to enable more cores to be fitted. This is easiest for registers which
@@ -37,9 +32,32 @@ hashvariant-C.v    As B, but pushes two hashes simultaneously through the pipeli
                    uses salsa-B.v NB This is a prototype design, the hash scheduling FSM
                    is totally INSANE (a tribute to NASA's skycrane perhaps).
 
-LX150_SPLIT        Separates the pbkdf and salsa engines into separate modules linked by
+LX150-SPLIT        Separates the pbkdf and salsa engines into separate modules linked by
                    a one bit serial bus to reduce routing congestion. This will form the
                    basis of ongoing work on further pipelining of the salsa.
 
-LX150_EIGHT-A      Fully pipelined salsa with 8 threads. Slow and somewhat buggy (see
+LX150-EIGHT-A      Fully pipelined salsa with 8 threads. Slow and somewhat buggy (see
                    the README). Major rework is required, will use -B, -C suffixes.
+ 
+LX150-EIGHT-B      Separate clock domains for pbkbd and salsa, dynamic clock speed (yay)!
+
+LX150-EIGHT-C      Ten stage pipeline (still only 8 threads). Not usefully faster.
+
+LX150-SLOWEIGHT-A  A return to the original slow clocked salsa core, but now with eight
+                   threads. This gets just under 10kHash/sec per LX150 though only one
+                   core sucessfully routes (there is sufficient LUT resource for a
+                   second, but the router cannot route it, perhaps a more aggressive
+                   planahead scheme will work).
+
+LX150-SLOWSIXTEEN-A Added a pipeline stage between column and row operations. Sixteen
+                   threads, and this time a second core does fit. Clocks at 50Mhz (the
+                   default is 25MHz, so increase it at runtime via the mining script)
+                   giving aroung 16khash/sec per LX150 (33khash/sec total for Lancelot).
+
+The later versions (LX150-EIGHT onwards) are built in PlanAhead version 14.4 (32 bits)
+using the following modified synthesis settings (strategy defined in Tools/Options) ...
+
+register balancing = yes
+register duplication = yes (already in default)
+resource sharing = no
+equivalent register removal = no

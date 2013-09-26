@@ -5,19 +5,13 @@
 # Python wrapper for Xilinx Serial Miner
 
 # CONFIGURATION - CHANGE THIS TO YOUR ACCOUNT DETAILS ...
-# Optionally install a Stratum Proxy Server
-
-host = "mining-foreman.org"			# Getwork pools
-# host = "http://litecoinpool.org"
-# host = "localhost"	# Stratum Proxy on localhost
-# host = "tvpi.lan"		# Stratum Proxy (raspberry pi)
-
-http_port = "10341"		# Getwork port (mining-foreman)
-# http_port = "9332"	# Getwork port (litcoinpool)
-# http_port = "8332"	# Getwork port (stratum)
-
+# Optionally install a Stratum Proxy Server on localhost
+host = "mining-foreman.org"	# Getwork
+# host = "localhost"	# Stratum Proxy alternative
 user = "username.1"		# Your worker goes here
 password = "password"	# Worker password, NOT your account password
+http_port = "10341"		# Getwork port.
+# http_port = "8332"	# Getwork port (stratum)
 
 # CONFIGURATION - CHANGE THIS (eg try COM1, COM2, COM3, COM4 etc)
 serial_port = "COM4"
@@ -42,6 +36,10 @@ dynclock = 0
 dynclock_hex = "0000"
 
 def stats(count, starttime):
+	# BTC 2**32 hashes per share (difficulty 1)
+	# mhshare = 4294.967296
+	# LTC 2**32 / 2048 hashes per share (difficulty 32)
+	# khshare = 2097.152	# CHECK THIS !!
 	khshare = 65.536 * writer.diff
 
 	s = sum(count)

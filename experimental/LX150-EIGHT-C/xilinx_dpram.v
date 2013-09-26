@@ -18,12 +18,14 @@ module ram # ( parameter ADDRBITS=10 ) (
 	//synthesis attribute ram_style of store is block
 	reg [255:0] store [(2 << (ADDRBITS-1))-1:0];
 	reg[ADDRBITS-1:0] raddr_reg;
+	reg[ADDRBITS-1:0] waddr_reg;
 	
 	always @ (posedge clock)
 	begin
 		raddr_reg <= raddr;
+		(* S = "TRUE" *) waddr_reg <= waddr;	// Extra register on waddr (replaces wr_addr1_d externally) to see if it improves routing
 		if (wren)
-			store[waddr] <= data;
+			store[waddr_reg] <= data;
 	end
 	
 	assign q = store[raddr_reg];
